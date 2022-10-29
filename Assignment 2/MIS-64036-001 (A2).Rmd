@@ -1,0 +1,309 @@
+---
+title: "Assignment 2"
+author: "Kiran Kour"
+date: "2022-10-18"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+# Importing dataset
+
+```{r}
+OnlineRetail<- read.csv("Online_Retail.csv")
+```
+
+# Importing required libraries
+
+```{r}
+#install.packages("tidyverse")
+```
+
+```{r}
+library(tidyverse)
+library(readr)
+library(dplyr)
+```
+
+# The first 6 columns of the dataset
+
+```{r}
+head(OnlineRetail)
+```
+
+# Data Exploration
+
+```{r}
+# Getting the descriptive statistics
+
+summary(OnlineRetail)
+```
+Question 1:
+
+Show the breakdown of the number of transactions by countries i.e., how many transactions are in the dataset for each country (consider all records including cancelled transactions). Show this in total number and also in percentage. Show only countries accounting for more than 1% of the total transactions. (10% of total points)
+
+```{r}
+# Number of transactions by countries
+
+Transactions<- table(OnlineRetail$Country)
+head(Transactions)
+```
+```{r}
+# Countries accounting for more than 1% of the total transactions.
+
+Trans_Countries<- OnlineRetail %>% group_by(Country)%>% summarise(Total_Trans= n(), Total_Perc= sum(n()/length(OnlineRetail$Country)*100)) %>% filter(Total_Perc >1) 
+```
+```{r}
+# Dataframe for the Number of countries with more than 1% of the total transactions
+head(Trans_Countries)
+```
+EIRE, FRANCE, GERMANY, and UNITED KINGDOM are the countries with more than 1% of the total transactions.
+
+
+Question 2:
+
+Create  a  new  variable  ‘TransactionValue’  that  is  the  product  of  the  exising  ‘Quantity’  and  ‘UnitPrice’ variables. Add this variable to the dataframe. (10% of total points) 
+
+```{r}
+# Creation of new variable 'TransactionValue'.
+
+OnlineRetail <- OnlineRetail %>% mutate(TransactionValue= Quantity * UnitPrice)
+
+# Rows and columns of the dataset
+
+head(OnlineRetail)
+```
+
+Question 3:
+
+Using the newly created variable, TransactionValue, show the breakdown of transaction values by countries i.e. how much money in total has been spent each country. Show this in total sum of 
+transaction values. Show only countries with total transaction exceeding 130,000 British Pound. (15% of total points) 
+
+```{r}
+# Countries with total transaction exceeding 130,000 British Pound
+
+BritishPound <- OnlineRetail %>% select(Country, TransactionValue)%>% group_by(Country) %>% summarise(Transactions= sum(TransactionValue))%>% filter(Transactions >130000)
+```
+```{r}
+as.data.frame(BritishPound)
+```
+There are in total 6 countries whose transactions exceed 130,000 British Pound out of which United Kingdom has the highest transaction.
+
+
+Question 4:
+
+Converting InvoiceDate variable to Date variable
+
+```{r}
+# First let’s convert ‘InvoiceDate’ into a POSIXlt object:
+
+Temp=strptime(OnlineRetail$InvoiceDate,format='%m/%d/%Y %H:%M',tz='GMT') 
+
+# Checking the variable
+
+head(Temp)
+```
+```{r}
+#Now,  let’s  separate  date,  day  of  the  week  and  hour  components dataframe with names as New_Invoice_Date,Invoice_Day_Week and New_Invoice_Hour: 
+
+OnlineRetail$New_Invoice_Date <- as.Date(Temp) 
+```
+```{r}
+# Knowing two date values, the object allows you to know the difference between the two dates in terms of the number days. 
+
+OnlineRetail$New_Invoice_Date[20000]-OnlineRetail$New_Invoice_Date[10]
+```
+```{r}
+# Converting dates to days of the week. Let’s define a new variable for that 
+
+OnlineRetail$Invoice_Day_Week= weekdays(OnlineRetail$New_Invoice_Date) 
+```
+```{r}
+# For  the  Hour,  let’s  just  take  the  hour  (ignore the  minute)  and  convert  into  a  normal  numerical value: 
+
+OnlineRetail$New_Invoice_Hour = as.numeric(format(Temp, "%H"))
+```
+```{r}
+# Finally, lets define the month as a separate numeric variable too: 
+
+OnlineRetail$New_Invoice_Month = as.numeric(format(Temp, "%m"))
+```
+```{r}
+# Dataset with new columns
+
+OnlineRetail[1:6,10:13]
+```
+Now answer the following questions. 
+
+a) Show  the  percentage  of  transactions  (by  numbers)  by  days  of  the  week  (extra  1%  of  total points) 
+
+```{r}
+# Getting the total no.of day transactions and its percentage
+
+Day_Percent <- OnlineRetail %>% group_by(Invoice_Day_Week) %>% summarise(Trans_Number= n(), Percent= sum(n()/length(OnlineRetail$Invoice_Day_Week)*100))
+```
+```{r}
+#Show the dataframe
+
+as.data.frame(Day_Percent)
+```
+b) Show the percentage of transactions (by transaction volume) by days of the week (extra 1% of total points) 
+
+```{r}
+# Getting the total volume of transactions by week and it's percentage
+
+Totalday_percent <- OnlineRetail%>% group_by(Invoice_Day_Week)%>% summarise(Total_trans= sum(TransactionValue))%>% mutate(Percent= Total_trans/sum(Total_trans)*100)
+```
+```{r}
+as.data.frame(Totalday_percent)
+```
+c) Show the percentage of transactions (by transaction volume) by month of the year (extra 2% of total points) 
+
+```{r}
+# Getting total transaction value by months and it's percent
+
+Totalmonth_percent <- OnlineRetail%>% group_by(New_Invoice_Month)%>% summarise(Total_trans= sum(TransactionValue))%>% mutate(Percent= Total_trans/sum(Total_trans)*100)
+```
+```{r}
+as.data.frame((Totalmonth_percent))
+```
+d) What was the date with the highest number of transactions from Australia? (extra 2% of total points) 
+
+```{r}
+# Selecting the date with highest number of transactions from Australia
+
+Highest_num<- OnlineRetail%>% filter(OnlineRetail$Country == "Australia")%>% group_by(New_Invoice_Date)%>% summarise(Aus_TransactionValue= n())%>% top_n(1, Aus_TransactionValue)
+```
+```{r}
+as.data.frame(Highest_num)
+```
+On 2011-06-15 Australia recorded the highest number of transactions i.e., 139.
+
+
+e) The company needs to shut down the website for two consecutive hours for maintenance. What would be the hour of the day to start this so that the distribution is at minimum for the customers? The responsible IT team is available from 7:00 to 20:00 every day.
+
+```{r}
+# Histogram for hours
+
+hist(OnlineRetail$New_Invoice_Hour, main= "Histogram for Hours",xlab= "Hours", ylab= "Frequency of Hours",border= "Dark blue",col= "Light green", las=1, xlim=c(7,20), breaks= 12)
+
+# Bar Chart to identify 
+
+barplot(table(OnlineRetail$Invoice_Day_Week), main="Bar Chart of Days",col=" Dark Blue")
+```
+
+From the Histogram and the Bar chart we can interpret that the best hours to do the maintenance of the company's website are between 18:00- 20:00. Moreover, Sunday would be the great day to do the maintenance.
+
+
+5. Plot  the  histogram  of  transaction  values  from  Germany.  Use  the  hist()  function  to  plot.
+
+```{r}
+# Getting the transaction values from Germany
+
+Germany <- select(OnlineRetail,TransactionValue, Country)%>% filter(OnlineRetail$Country == "Germany")
+```
+```{r}
+# Histogram for transaction values from Germany
+
+hist(Germany$TransactionValue,xlab= "Transactions",ylab= "Frequency of Transactions",xlim=c(-20,155),las=1, breaks= 600,col= "light blue",border="dark blue", main="Transaction Value from Germany")
+```
+
+6. Which customer had the highest number of transactions? Which customer is most valuable (i.e. highest total sum of transactions)? 
+
+```{r}
+# Customer with the highest number of transactions
+
+Valuable_customer <- OnlineRetail %>% na.omit()%>% group_by(CustomerID)%>% summarise(Num_highest = n())%>% top_n(1,Num_highest)
+```
+```{r}
+as.data.frame(Valuable_customer)
+```
+The customer with CustomerID 17841 had the highest number of transactions amongst the others with a total of 7983.
+
+
+```{r}
+# Valuable customer with the highest Volume of transactions
+
+Valuable_customer <- OnlineRetail%>% na.omit()%>% group_by(CustomerID)%>% summarise(High_transaction= sum(TransactionValue))%>% top_n(1,High_transaction)
+```
+```{r}
+as.data.frame(Valuable_customer)
+```
+The customer with CustomerID 14646 is the valuable customer with the highest transaction sum of 279489 British Sterling Pound. 
+
+
+
+7. Calculate the percentage of missing values for each variable in the dataset. Hint colMeans(): 
+
+```{r}
+percent_missing <- colMeans(is.na(OnlineRetail))
+```
+```{r}
+as.data.frame(percent_missing)
+```
+Out of all the Variables in the dataset CustomerID is the only attribute with 24.92669% of NAs.
+
+
+ 8. What  are  the  number  of  transactions  with  missing  CustomerID  records  by  countries? 
+ 
+```{r}
+ # Number of Transactions with missing CustomerID records by countries
+
+ID_missing<- OnlineRetail%>% group_by(Country, CustomerID)%>% filter(is.na(CustomerID)) %>% summarise(Num_trans= n())
+as.data.frame(ID_missing)
+```
+There are 9 countries with missing CustomerID records, out of which the United Kingdom is the highest with 133600 missing values.
+
+
+
+9. On average, how often the costumers comeback to the website for their next shopping? (i.e. what is the average number of days between consecutive shopping) 
+
+```{r}
+# Days average between consecutive shopping
+
+Days_Avg <- OnlineRetail %>% select(CustomerID, New_Invoice_Date) %>% group_by(CustomerID) %>% mutate(Days_diff = as.numeric(c(diff(New_Invoice_Date),0))) %>% summarise(Days_time = sum(Days_diff),
+Days_Avg = sum(Days_diff)/sum(n()))
+```
+```{r}
+head(as.data.frame(Days_Avg))
+```
+
+10. In the retail sector, it is very important to understand the return rate of the goods purchased by customers.  In  this  example,  we  can  define  this  quantity,  simply,  as  the  ratio  of  the  number  of transactions cancelled (regardless of the transaction value) over the total number of transactions. With  this  definition,  what  is  the  return  rate  for  the  French  customers? Consider the cancelled transactions as those where the ‘Quantity’ variable has a negative value. 
+
+```{r}
+# Return rate for the French customers
+
+numerator <- OnlineRetail %>% select(Quantity, TransactionValue, Country) %>% filter(Country == "France" & Quantity < 0)
+denominator <- OnlineRetail %>% select(Quantity, TransactionValue, Country) %>% filter(Country == "France")
+Ratio <- count(numerator) / count(denominator)
+
+
+as.data.frame(Ratio)
+```
+The return rate for the French customers is 1.741264%
+
+
+11. What is the product that has generated the highest revenue for the retailer? (i.e. item with the highest total sum of ‘TransactionValue’). 
+
+```{r}
+# Highest revenue for the retailer
+
+Rev_Highest <- OnlineRetail %>% group_by(Description) %>%
+summarise(Trans_highest = sum(TransactionValue)) %>%
+  top_n(1)
+```
+```{r}
+as.data.frame((Rev_Highest))
+```
+The product generating the highest revenue for the retailer is DOTCOM POSTAGE i.e., 206245.5 British Sterling Pound.
+
+
+12.  How many unique customers are represented in the dataset? You can use unique() and length() functions. 
+
+```{r}
+#Showing the number of unique customers
+
+length(unique(OnlineRetail$CustomerID))
+```
+There are total of 4373 unique customers 
